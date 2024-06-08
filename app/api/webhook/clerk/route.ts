@@ -29,7 +29,15 @@ export async function POST(req: Request) {
   }
 
   // Get the body
-  const payload = await req.json();
+  let payload;
+  try {
+    payload = await req.json();
+  } catch (err) {
+    console.error("Error parsing request body:", err);
+    return new Response("Error parsing request body", {
+      status: 400,
+    });
+  }
   const body = JSON.stringify(payload);
 
   // Create a new Svix instance with your secret.
@@ -52,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   // Get the ID and type
-  const { id } = evt.data;
+  const { id, ...eventData } = evt.data;
   const eventType = evt.type;
 
   if (eventType === "user.created") {
@@ -80,29 +88,33 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "OK", user: newUser });
   }
+  try {
+    if (eventType === "user.updated") {
+      const { id, image_url, first_name, last_name, username } = evt.data;
 
-  if (eventType === "user.updated") {
-    const { id, image_url, first_name, last_name, username } = evt.data;
+      const user = {
+        firstName: first_name,
+        lastName: last_name,
+        username: username!,
+        photo: image_url,
+      };
 
-    const user = {
-      firstName: first_name,
-      lastName: last_name,
-      username: username!,
-      photo: image_url,
-    };
+      const updatedUser = await updateUser(id, user);
 
-    const updatedUser = await updateUser(id, user);
+      return NextResponse.json({ message: "OK", user: updatedUser });
+    }
 
-    return NextResponse.json({ message: "OK", user: updatedUser });
+    if (eventType === "user.deleted") {
+      const { id } = evt.data;
+
+      const deletedUser = await deleteUser(id!);
+
+      return NextResponse.json({ message: "OK", user: deletedUser });
+    }
+
+    return new Response("", { status: 200 });
+  } catch (error) {
+    console.error("Error handling event:", error);
+    return new Response("Internal server error", { status: 500 });
   }
-
-  if (eventType === "user.deleted") {
-    const { id } = evt.data;
-
-    const deletedUser = await deleteUser(id!);
-
-    return NextResponse.json({ message: "OK", user: deletedUser });
-  }
-
-  return new Response("", { status: 200 });
 }

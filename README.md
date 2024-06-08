@@ -39,4 +39,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/deploym
 
 ### PROGRESS
 
-4.38.16 (Stripe Implementation)
+(STRIPE IMPLEMENTATION)
+Error on clerk webhook, not sure what is going on right now
